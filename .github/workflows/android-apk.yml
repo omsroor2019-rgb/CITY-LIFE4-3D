@@ -1,4 +1,4 @@
-name: Build CITY LIFE 3D V4 ULTIMATE APK
+name: Build CITY LIFE 3D V4.1 FIXED APK
 
 on:
   workflow_dispatch:
@@ -71,7 +71,7 @@ jobs:
             "platform-tools" \
             "platforms;android-34" \
             "build-tools;34.0.0" \
-            "ndk;27.2.12479018" \
+            "ndk;27.0.12077973" \
             "cmake;3.22.1"
 
       - name: Install CITY LIFE 3D source into Android template
@@ -88,6 +88,43 @@ jobs:
             cp -R game-source/assets/. android-project/app/src/main/assets/
           fi
 
+          # Validate every playlist entry before starting the native build.
+          python3 - <<'PY'
+          from pathlib import Path
+
+          music_dir = Path("game-source/assets/music")
+          playlist = music_dir / "playlist.txt"
+          if not playlist.is_file():
+              raise SystemExit("ERROR: assets/music/playlist.txt is missing")
+
+          entries = []
+          for raw in playlist.read_text(encoding="utf-8-sig").splitlines():
+              line = raw.strip()
+              if not line or line.startswith("#"):
+                  continue
+              filename = line.split("|", 1)[0].strip()
+              if not filename or Path(filename).name != filename:
+                  raise SystemExit(f"ERROR: invalid playlist filename: {line!r}")
+              audio = music_dir / filename
+              if not audio.is_file():
+                  raise SystemExit(f"ERROR: playlist track not found: {audio}")
+              data = audio.read_bytes()[:12]
+              suffix = audio.suffix.lower()
+              valid = (
+                  (suffix == ".ogg" and data.startswith(b"OggS")) or
+                  (suffix == ".mp3" and (data.startswith(b"ID3") or (len(data) >= 2 and data[0] == 0xFF and (data[1] & 0xE0) == 0xE0))) or
+                  (suffix == ".wav" and data.startswith(b"RIFF"))
+              )
+              if not valid:
+                  raise SystemExit(f"ERROR: audio content does not match extension: {audio}")
+              entries.append(filename)
+
+          if not entries:
+              raise SystemExit("ERROR: playlist has no usable tracks")
+          print(f"Validated {len(entries)} audio tracks")
+          PY
+
+          test -f android-project/app/src/main/assets/music/playlist.txt
           test -f android-project/app/src/main/cpp/CMakeLists.txt
           test -f android-project/gradlew
           test -f android-project/gradle.properties
@@ -103,8 +140,8 @@ jobs:
               "app.application_id": "com.citylife3d.game",
               "app.category": "LAUNCHER", 
               "app.orientation": "landscape",
-              "app.version_name": "0.4.0",
-              "app.version_code": "4",
+              "app.version_name": "0.4.1",
+              "app.version_code": "5",
               "gl.version": "ES20",
               "display.keep_on": "true",
               "display.immersive": "true",
@@ -169,7 +206,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CITY-LIFE-3D-V4-ULTIMATE-WORLD-APK
+          name: CITY-LIFE-3D-V4.1-FIXED-APK
           path: android-project/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14

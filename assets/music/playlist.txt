@@ -1,1 +1,8 @@
-
+# filename|display name
+# Add custom .ogg, .mp3 or .wav files to this folder, then add a line below.
+desert-drift.ogg|NOVA DESERT DRIFT
+arabic-electro.ogg|ARABIC ELECTRO
+night-cruise.ogg|NIGHT CRUISE
+coast-chill.ogg|COASTLINE CHILL
+street-hiphop.ogg|STREET HIP HOP
+rally-energy.ogg|RALLY ENERGY
